@@ -1,0 +1,16 @@
+obj\Release\ddp.exe
+obj\Release\ddp.pdb
+bin\Release\ddp.exe
+bin\Release\ddp.pdb
+obj\Release\ResolveAssemblyReference.cache
+obj\Release\ddp.Form1.resources
+obj\Release\ddp.Properties.Resources.resources
+obj\Release\ddp.csproj.GenerateResource.Cache
+bin\Release\Images\1.png
+bin\Release\Images\2.png
+bin\Release\Images\3.png
+bin\Release\Images\4.png
+bin\Release\Images\5.png
+bin\Release\Images\6.png
+bin\Release\Images\7.png
+bin\Release\Images\8.png
