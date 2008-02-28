@@ -57,8 +57,8 @@ namespace ddp
 
         public Tile(int x, int y)
         {
-            x = _x;
-            y = _y;
+            _x = x;
+            _y = y;
 
             _imageIndex = -1;  //´ú±íÎ´·ÖÅä
         }
