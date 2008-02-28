@@ -1,11 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Drawing;
+using System.Windows.Forms;
 
 namespace ddp
 {
     class Tile
     {
+        private int _blockWidth = 50;
         private int _x;
 
         public int X
@@ -27,9 +30,33 @@ namespace ddp
         public int ImageIndex
         {
             get { return _imageIndex; }
-            set { _imageIndex = value; }
+            set { 
+                _imageIndex = value; 
+            }
         }
 
+        private Graphics _graphics;
+
+        public Graphics Graph
+        {
+            get { return _graphics; }
+            set { _graphics = value; }
+        }
+
+
+        public void Draw()
+        {
+            string fileName = Application.StartupPath + "/Images/" + ImageIndex + ".png";
+
+            Bitmap bmp = new Bitmap(fileName);
+            Graph.DrawImage(bmp, OffsetX, OffsetY,_blockWidth,_blockWidth);
+
+        }
+
+        public void Hide()
+        {
+            Graph.FillRectangle(new SolidBrush(Color.Black), new Rectangle(OffsetX, OffsetY, _blockWidth, _blockWidth));
+        }
         private int _offsetX;
 
         public int OffsetX

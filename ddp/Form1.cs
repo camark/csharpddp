@@ -8,11 +8,13 @@ using System.Windows.Forms;
 
 namespace ddp
 {
+    public enum ExchangeDirection { left, right, top, bottom,none };
     public partial class Form1 : Form
     {
         private int VertCount = 8;
         private int HorzCount = 8;
         private Tile[,] MapTiles = null;
+        private static int rndCount = 0;
 
         private int _blockWidth = 50;
         private Tile _selTile = null;
@@ -22,8 +24,96 @@ namespace ddp
             InitializeComponent();
         }
 
+        private Tile GetTileByDirection(Tile t,ExchangeDirection direct)
+        {
+            int x = t.X;
+            int y = t.Y;
 
-        private int _offsetX=50;
+            switch (direct)
+            {
+                case ExchangeDirection.left:
+                    if (y == 0)
+                        return null;
+                    else
+                        return MapTiles[x, y - 1];
+                    break;
+                case ExchangeDirection.right:
+                    if (y == HorzCount-1)
+                        return null;
+                    else
+                        return MapTiles[x, y + 1];
+                    break;
+                case ExchangeDirection.top:
+                    if (x == 0)
+                        return null;
+                    else
+                        return MapTiles[x - 1, y];
+                    break;
+                case ExchangeDirection.bottom:
+                    if (x == VertCount - 1)
+                        return null;
+                    else
+                        return MapTiles[x + 1, y];
+                    break;
+                default:
+                    return null;
+                    break;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// 查询可以交换的方向
+        /// </summary>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        private ExchangeDirection getExchangeDirection(Tile t)
+        {
+            Tile temp_t= GetTileByDirection(t, ExchangeDirection.left);
+            if (temp_t != null)
+            {
+                if (CanExchange(t, temp_t))
+                    return ExchangeDirection.left;
+            }
+
+            temp_t = GetTileByDirection(t, ExchangeDirection.right);
+            if (temp_t != null)
+            {
+                if (CanExchange(t, temp_t))
+                    return ExchangeDirection.right;
+            }
+
+            temp_t = GetTileByDirection(t, ExchangeDirection.top);
+            if (temp_t != null)
+            {
+                if (CanExchange(t, temp_t))
+                    return ExchangeDirection.top;
+            }
+
+            temp_t = GetTileByDirection(t, ExchangeDirection.bottom);
+            if (temp_t != null)
+            {
+                if (CanExchange(t, temp_t))
+                    return ExchangeDirection.bottom;
+            }
+
+            return ExchangeDirection.none;
+        }
+
+        private bool Is_No_Solution()
+        {
+            for (int i = 0; i < VertCount; i++)
+                for (int j = 0; j < HorzCount; j++)
+                    if (getExchangeDirection(MapTiles[i, j]) != ExchangeDirection.none)
+                        return false;
+
+            return true;
+        }
+
+
+
+        private int _offsetX = 50;
 
         public int OffsetX
         {
@@ -39,6 +129,7 @@ namespace ddp
                 for (int j = 0; j < VertCount; j++)
                 {
                     MapTiles[i, j] = new Tile(i,j);
+                    MapTiles[i, j].Graph = Graphics.FromHwnd(panel1.Handle);
                     MapTiles[i, j].ImageIndex = rnd.Next(8) + 1;
                     MapTiles[i, j].OffsetX = _offsetX+j * _blockWidth;
                     MapTiles[i, j].OffsetY = i * _blockWidth;
@@ -63,6 +154,9 @@ namespace ddp
         private void PaintPanel()
         {
             Graphics g = Graphics.FromHwnd(panel1.Handle);
+
+            Rectangle rect = panel1.ClientRectangle;
+            g.FillRectangle(new SolidBrush(Color.Black), rect);
 
             for (int i = 0; i < HorzCount; i++)
                 for (int j = 0; j < VertCount; j++)
@@ -119,12 +213,14 @@ namespace ddp
             //左侧
             temp_x = x;
             temp_y = y - 1;
+            int leftCount = 0;
             if (!isPointOutOfBorder(temp_x, temp_y))
             {
                 Tile temp_tile=MapTiles[temp_x,temp_y];
                 while (temp_tile.ImageIndex == t.ImageIndex)
                 {
-                    tiles.Add(temp_tile);
+                    //tiles.Add(temp_tile);
+                    leftCount++;
                     temp_y--;
                     if (isPointOutOfBorder(temp_x, temp_y))
                         break;
@@ -132,21 +228,34 @@ namespace ddp
                 }
             }
 
-            tiles.Add(t);
+            //tiles.Add(t);
 
             //右侧
             temp_y = y + 1;
+            int rightCount = 0;
             if (!isPointOutOfBorder(temp_x, temp_y))
             {
                 Tile temp_tile = MapTiles[temp_x, temp_y];
                 while (temp_tile.ImageIndex == t.ImageIndex)
                 {
-                    tiles.Add(temp_tile);
+                    //tiles.Add(temp_tile);
+                    rightCount++;
                     temp_y++;
                     if (isPointOutOfBorder(temp_x, temp_y))
                         break;
                     temp_tile = MapTiles[temp_x, temp_y];
                 }
+            }
+
+            for (int i = leftCount; i > 0; i--)
+            {
+                tiles.Add(MapTiles[x, y-i]);
+            }
+            tiles.Add(t);
+
+            for (int j = 1; j <= rightCount; j++)
+            {
+                tiles.Add(MapTiles[x, y+j]);
             }
 
             return tiles.ToArray();
@@ -168,40 +277,56 @@ namespace ddp
             int temp_y = 0;
 
 
-            //查找水平方向
+            //查找竖直方向
             List<Tile> tiles = new List<Tile>();
 
             //上方
             temp_x = x-1;
             temp_y = y;
+
+            int UpCount = 0;
             if (!isPointOutOfBorder(temp_x, temp_y))
             {
                 Tile temp_tile = MapTiles[temp_x, temp_y];
-                while (temp_tile.ImageIndex == t.ImageIndex)
+                while (temp_tile.ImageIndex == t.ImageIndex && temp_tile.ImageIndex!=-1)
                 {
-                    tiles.Add(temp_tile);
-                    temp_y--;
+                    //tiles.Add(temp_tile);
+                    UpCount++;
+                    temp_x--;
                     if (isPointOutOfBorder(temp_x, temp_y))
                         break;
                     temp_tile = MapTiles[temp_x, temp_y];
                 }
             }
 
-            tiles.Add(t);
+            //tiles.Add(t);
 
             //下方
             temp_x = x + 1;
+            int DownCount = 0;
             if (!isPointOutOfBorder(temp_x, temp_y))
             {
                 Tile temp_tile = MapTiles[temp_x, temp_y];
-                while (temp_tile.ImageIndex == t.ImageIndex)
+                while (temp_tile.ImageIndex == t.ImageIndex && temp_tile.ImageIndex != -1)
                 {
-                    tiles.Add(temp_tile);
+                    //tiles.Add(temp_tile);
+                    DownCount++;
                     temp_x++;
                     if (isPointOutOfBorder(temp_x, temp_y))
                         break;
                     temp_tile = MapTiles[temp_x, temp_y];
                 }
+            }
+
+            for (int i = UpCount; i>0; i--)
+            {
+                tiles.Add(MapTiles[x - i,y]);
+            }
+            tiles.Add(t);
+
+            for (int j = 1; j <= DownCount; j++)
+            {
+                tiles.Add(MapTiles[x + j, y]);
             }
 
             return tiles.ToArray();
@@ -238,103 +363,15 @@ namespace ddp
 
         private bool CheckCanHide(Tile t)
         {
-            int x = t.X;
-            int y = t.Y;
+            int xcount = GetCanHideHorzTiles(t).Length;
 
-            
+            if (xcount >= 3)
+                return true;
 
-            int temp_x = 0;
-            int temp_y = 0;
+            int ycount = GetCanHideVertTiles(t).Length;
 
-            //上方检测
-            temp_x = x - 1;
-            temp_y = y;
-            int SamCol = 1;
-            if(!isPointOutOfBorder(temp_x,temp_y))
-            {
-                Tile temp_tile=MapTiles[temp_x,temp_y];
-
-                while (temp_tile.ImageIndex == t.ImageIndex && temp_tile.ImageIndex!=-1)
-                {
-                    SamCol++;
-
-                    temp_x--;
-                    if(isPointOutOfBorder(temp_x,temp_y))
-                        break;
-                    temp_tile = MapTiles[temp_x, temp_y];
-                }
-
-                if (SamCol >= 3)
-                    return true;
-            }
-           
-
-            //下方检测
-            temp_x = x + 1;
-            temp_y = y;
-            SamCol = 1;
-            if (!isPointOutOfBorder(temp_x, temp_y))
-            {
-                Tile temp_tile = MapTiles[temp_x, temp_y];
-
-                while (temp_tile.ImageIndex == t.ImageIndex && temp_tile.ImageIndex != -1)
-                {
-                    SamCol++;
-
-                    temp_x++;
-                    if(isPointOutOfBorder(temp_x,temp_y))
-                        break;
-                    temp_tile = MapTiles[temp_x, temp_y];
-                }
-
-                if (SamCol >= 3)
-                    return true;
-            }
-
-            //左侧检测
-            temp_x = x; 
-            temp_y = y-1;
-            SamCol = 1;
-            if (!isPointOutOfBorder(temp_x, temp_y))
-            {
-                Tile temp_tile = MapTiles[temp_x, temp_y];
-
-                while (temp_tile.ImageIndex == t.ImageIndex && temp_tile.ImageIndex != -1)
-                {
-                    SamCol++;
-
-                    temp_y--;
-
-                    if(isPointOutOfBorder(temp_x,temp_y))
-                        break;
-                    temp_tile = MapTiles[temp_x, temp_y];
-                }
-
-                if (SamCol >= 3)
-                    return true;
-            }
-
-            //右侧检测
-            temp_x = x;
-            temp_y = y + 1;
-            SamCol = 1;
-            if (!isPointOutOfBorder(temp_x, temp_y))
-            {
-                Tile temp_tile = MapTiles[temp_x, temp_y];
-
-                while (temp_tile.ImageIndex == t.ImageIndex && temp_tile.ImageIndex != -1)
-                {
-                    SamCol++;
-
-                    temp_y++;
-                    if(isPointOutOfBorder(temp_x,temp_y))
-                        break;
-                    temp_tile = MapTiles[temp_x, temp_y];
-                }
-
-                if (SamCol >= 3)
-                    return true;
-            }
+            if (ycount >= 3)
+                return true;
 
             return false;
 
@@ -466,6 +503,11 @@ namespace ddp
             t2.ImageIndex = imageIndex;
         }
 
+        /// <summary>
+        /// 下落方块
+        /// </summary>
+        /// <param name="t">起始方块</param>
+        /// <param name="n">下落个数</param>
         private void DownTitle(Tile t,int n)
         {
             int x = t.X;
@@ -479,16 +521,42 @@ namespace ddp
                 temp_x--;
             }
 
-            Random rnd=new Random((int)System.DateTime.Now.Millisecond);
+
+            
             for (int i = 0; i < need_gen_num; i++)
             {
-                MapTiles[i, y].ImageIndex = rnd.Next(8) + 1;
+                System.Threading.Thread.Sleep(1);
+                MapTiles[i, y].ImageIndex = GetRandomNumber(1,8);
             }            
+        }
+
+        /// <summary>
+        /// 防止因为计算机速度过快，而产生相同的随机数
+        /// </summary>
+        /// <param name="min"></param>
+        /// <param name="max"></param>
+        /// <returns></returns>
+        private int GetRandomNumber(int min,int max)
+        {
+            int num = 1;
+            Random rnd = new Random(unchecked(rndCount * (int)DateTime.Now.Ticks));
+            
+
+            num= rnd.Next(min, max);
+            rndCount++;
+
+            return num;
         }
 
         private void panel1_MouseUp(object sender, MouseEventArgs e)
         {
-            int y = e.X / _blockWidth;
+            if (e.X < OffsetX)
+            {
+                _selTile = null;
+                return;
+            }
+
+            int y = (e.X-OffsetX) / _blockWidth;
             int x = e.Y / _blockWidth;
 
             label1.Text = x.ToString() + "," + y.ToString();
@@ -524,11 +592,33 @@ namespace ddp
 
                     Tile[] vertTiles = GetCanHideVertTiles(tile2);
                     int ilen = vertTiles.Length;
+                    
+                    if (ilen >= 3)
+                    {
+                        Tile temp_tile = vertTiles[0];
+                        DownTitle(temp_tile, ilen);
+                    }
+
+                    horzTiles = GetCanHideHorzTiles(_selTile);
+
+                    if (horzTiles.Length >= 3)
+                    {
+                        foreach (Tile t in horzTiles)
+                        {
+                            DownTitle(t, 1);
+                        }
+                    }
+
+                    vertTiles = GetCanHideVertTiles(_selTile);
+                    ilen = vertTiles.Length;
 
                     if (ilen >= 3)
                     {
-                        DownTitle(tile2, ilen);
+                        Tile temp_tile = vertTiles[0];
+                        DownTitle(temp_tile, ilen);
                     }
+
+
 
                     _selTile = null;
                     ScanCanAutoHide();
@@ -536,6 +626,7 @@ namespace ddp
                 }
                 else
                 {
+                    _selTile = null;
                     MessageBox.Show("Invalid Exchange!");
                 }
             }
@@ -556,6 +647,36 @@ namespace ddp
                         Bitmap bmp = new Bitmap(fileName);
 
                         g.DrawImage(bmp, MapTiles[i, j].OffsetX, MapTiles[i, j].OffsetY, _blockWidth, _blockWidth);
+                    }
+            }
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            
+            if (_GameStart)
+            {
+                Graphics g = Graphics.FromHwnd(panel1.Handle);
+                for (int i = 0; i < HorzCount; i++)
+                    for (int j = 0; j < VertCount; j++)
+                    {
+                        Tile t = MapTiles[i, j];
+
+                        ExchangeDirection direct = getExchangeDirection(t);
+                        if (direct != ExchangeDirection.none)
+                        {
+                            Tile temp_tile = GetTileByDirection(t, direct);
+
+                            temp_tile.Hide();
+                            System.Threading.Thread.Sleep(30);
+                            temp_tile.Draw();
+
+                            t.Hide();
+                            System.Threading.Thread.Sleep(30);
+                            t.Draw();
+
+                            return;
+                        }
                     }
             }
         }
