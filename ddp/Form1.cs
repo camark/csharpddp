@@ -303,6 +303,7 @@ namespace ddp
 
             //下方
             temp_x = x + 1;
+            temp_y = y;
             int DownCount = 0;
             if (!isPointOutOfBorder(temp_x, temp_y))
             {
@@ -340,19 +341,15 @@ namespace ddp
         /// <param name="t2"></param>
         /// <returns></returns>
         private bool CanExchange(Tile t1, Tile t2)
-        {
-            Tile temp_tile = new Tile(t2.X, t2.Y);
-            temp_tile.ImageIndex = t1.ImageIndex;
+        {            
+            Exchange(t1,t2);
+            if (CheckCanHide(t1) || CheckCanHide(t2))
+            {
+                Exchange(t2,t1);
+                return true;                
+            }
 
-            if (CheckCanHide(temp_tile))
-                return true;
-
-            temp_tile = new Tile(t1.X, t1.Y);
-            temp_tile.ImageIndex = t2.ImageIndex;
-
-            if (CheckCanHide(temp_tile))
-                return true;
-
+            Exchange(t1, t2);
             return false;
 
         }
@@ -429,7 +426,7 @@ namespace ddp
             if (CanExchange(MapTiles[x1, y1], MapTiles[x2, y2]))
             {
                 MessageBox.Show("Can Hide!");
-                Exchange(ref MapTiles[x1, y1], ref MapTiles[x2, y2]);
+                Exchange( MapTiles[x1, y1],MapTiles[x2, y2]);
 
                 Tile[] horzTiles = GetCanHideHorzTiles(MapTiles[x1, y1]);
 
@@ -493,7 +490,7 @@ namespace ddp
             //    ScanCanAutoHide();
         }
 
-        private void Exchange(ref Tile t1, ref Tile t2)
+        private void Exchange(Tile t1,Tile t2)
         {
            
             int imageIndex=0;
@@ -578,9 +575,13 @@ namespace ddp
                 if (CanExchange(_selTile, tile2))
                 {
                     //MessageBox.Show("Can Hide!");
-                    Exchange(ref _selTile, ref tile2);
+                    Exchange(_selTile,tile2);
 
+                    bool _isCross = false;
                     Tile[] horzTiles = GetCanHideHorzTiles(tile2);
+                    Tile[] vertTiles = GetCanHideVertTiles(tile2);
+
+                    _isCross = horzTiles.Length >= 3 && vertTiles.Length >= 3;
 
                     if (horzTiles.Length >= 3)
                     {
@@ -590,17 +591,21 @@ namespace ddp
                         }
                     }
 
-                    Tile[] vertTiles = GetCanHideVertTiles(tile2);
+                    
                     int ilen = vertTiles.Length;
                     
                     if (ilen >= 3)
                     {
                         Tile temp_tile = vertTiles[0];
-                        DownTitle(temp_tile, ilen);
+                        if (_isCross)
+                            DownTitle(temp_tile, ilen - 1);
+                        else
+                            DownTitle(temp_tile, ilen);
                     }
 
                     horzTiles = GetCanHideHorzTiles(_selTile);
-
+                    vertTiles = GetCanHideVertTiles(_selTile);
+                    _isCross = horzTiles.Length >= 3 && vertTiles.Length >= 3;
                     if (horzTiles.Length >= 3)
                     {
                         foreach (Tile t in horzTiles)
@@ -609,7 +614,7 @@ namespace ddp
                         }
                     }
 
-                    vertTiles = GetCanHideVertTiles(_selTile);
+                    
                     ilen = vertTiles.Length;
 
                     if (ilen >= 3)
@@ -622,6 +627,8 @@ namespace ddp
 
                     _selTile = null;
                     ScanCanAutoHide();
+                    if (Is_No_Solution())
+                        InitGameData();
                     ShowData();
                 }
                 else
@@ -656,6 +663,7 @@ namespace ddp
             
             if (_GameStart)
             {
+                bool canExchange = false;
                 Graphics g = Graphics.FromHwnd(panel1.Handle);
                 for (int i = 0; i < HorzCount; i++)
                     for (int j = 0; j < VertCount; j++)
@@ -675,10 +683,15 @@ namespace ddp
                             System.Threading.Thread.Sleep(30);
                             t.Draw();
 
+                            canExchange = true;
                             return;
                         }
                     }
+
+                if (!canExchange)
+                    MessageBox.Show("当前图形无解!", "Notice");
             }
         }
+       
     }
 }
